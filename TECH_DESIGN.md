@@ -451,22 +451,29 @@ export default {
       colors: {
         ground: "#070912",
         "ground-2": "#0C101C",
+        "ground-3": "#121828",
         ink: "#EEF1F6",
-        "ink-muted": "#98A2B3",
+        "ink-muted": "#8B95A7",
+        "ink-faint": "#5A6478",
+        line: "rgba(255,255,255,0.08)",
         accent: "#F2C879",
-        danger: "#E5484D",
+        "accent-dim": "#C9A25E",
         star: "#CFE0FF",
+        danger: "#E5484D",
       },
       fontFamily: {
-        display: ["Space Grotesk", "sans-serif"],
-        sans: ["Inter", "sans-serif"],
+        display: ["Space Grotesk", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono", "ui-monospace", "monospace"],
       },
-      borderRadius: { sm: "4px", DEFAULT: "6px" },
       maxWidth: { content: "1200px" },
+      letterSpacing: { tightest: "-0.045em" },
     },
   },
-};
+} satisfies Config;
 ```
+
+字体经 `@fontsource/*` 自托管，在 `main.tsx` 按需引入权重（Space Grotesk 400–700、Inter 400–600、JetBrains Mono 400/500）。
 
 ### 10.2 CSS 变量（`index.css`）
 
@@ -528,3 +535,19 @@ export default {
 - 构建：`npm run build`（产物在 `dist/`）。
 - 预览：`npm run preview`。
 - 部署：静态托管（Vercel / Netlify / GitHub Pages 等）。若部署到子路径，需配置 Vite `base`；SPA 需配置 history 回落（`/index.html`）以支持 `/admin` 等深链刷新。
+
+---
+
+## 16. 当前实现进度
+
+**已完成（可 `npm run dev` / `npm run build` 运行，`tsc --noEmit` 通过）**
+
+- 工程脚手架：Vite + React 18 + TS(strict) + Tailwind v3，路径别名 `@ → src`，字体自托管。
+- 设计系统：`tailwind.config.ts` 色板、`index.css` CSS 变量与 `.display-xl/l/m` 流体字号、星空/星图组件。
+- 数据层：`src/api`（`types / storage / seed / index`）完整实现 profile / projects / resume / auth / db，统一返回 `Promise`；`import.meta.env.VITE_ADMIN_PASSWORD` 提供默认口令。
+- 前台：`PublicLayout` + 首页 / 关于 / 项目 / 项目详情 / 简历 / 404，数据经 `DataContext` 读取，含空/错/加载态、响应式与减少动效支持。
+
+**待实现（下一步）**
+
+- 后台 `/admin`：`AuthContext` + `ProtectedRoute` 守卫、登录页、仪表盘、个人资料（含头像压缩上传）、项目管理（增删改/排序/精选）、简历上传、设置（导入/导出/重置）。
+- 跨标签页同步已就绪（`DataContext` 监听 `storage` 事件）。
