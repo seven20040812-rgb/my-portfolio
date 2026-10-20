@@ -1,5 +1,5 @@
 import { storage } from "./storage";
-import { seedProfile, seedProjects } from "./seed";
+import { seedProfile, seedProjects, seedResume } from "./seed";
 import type {
   Database,
   Profile,
@@ -19,7 +19,7 @@ const AUTH_KEY = "auth";
 function ensureSeed(): void {
   if (!storage.has(PROFILE_KEY)) storage.set(PROFILE_KEY, seedProfile);
   if (!storage.has(PROJECTS_KEY)) storage.set(PROJECTS_KEY, seedProjects);
-  if (!storage.has(RESUME_KEY)) storage.set<Resume | null>(RESUME_KEY, null);
+  if (!storage.has(RESUME_KEY)) storage.set<Resume | null>(RESUME_KEY, seedResume);
 }
 
 ensureSeed();
@@ -109,7 +109,7 @@ export const api = {
 
   resume: {
     async get(): Promise<Resume | null> {
-      return storage.get<Resume | null>(RESUME_KEY, null);
+      return storage.get<Resume | null>(RESUME_KEY, seedResume);
     },
     async upload(file: File): Promise<Resume> {
       const dataUrl = await readAsDataUrl(file);
@@ -166,7 +166,7 @@ export const api = {
     async reset(): Promise<void> {
       storage.set(PROFILE_KEY, seedProfile);
       storage.set(PROJECTS_KEY, seedProjects);
-      storage.set<Resume | null>(RESUME_KEY, null);
+      storage.set<Resume | null>(RESUME_KEY, seedResume);
     },
   },
 };

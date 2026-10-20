@@ -66,8 +66,11 @@ export function ResumePage() {
             ) : (
               <div className="grid min-h-[40vh] place-items-center px-6 py-16 text-center">
                 <div>
-                  <p className="text-sm text-ink-muted">
-                    该文件类型无法在浏览器内预览。
+                  <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-faint">
+                    DOCUMENT
+                  </p>
+                  <p className="mt-3 text-sm text-ink-muted">
+                    该格式无法在浏览器内直接预览，请下载查看完整简历。
                   </p>
                   <a
                     href={resume.dataUrl}
