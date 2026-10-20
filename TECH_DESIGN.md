@@ -1,6 +1,6 @@
 # 技术设计文档（TECH_DESIGN）— 个人展示网站 + 管理后台
 
-> 文档版本：v1.0
+> 文档版本：v1.1（与当前代码同步）
 > 关联文档：`PRD.md`（产品需求）、`AGENTS.md`（AI 开发规范）
 
 ---
@@ -9,97 +9,108 @@
 
 | 领域 | 选型 | 理由 |
 | --- | --- | --- |
-| 构建工具 | **Vite** | 极快的冷启动与 HMR，现代前端默认选择，配置简单 |
-| 框架 | **React 18** | 生态成熟、函数式组件 + Hooks 模型 |
-| 语言 | **TypeScript（strict）** | 强类型保障数据结构与 API 契约，利于长期维护 |
-| 样式 | **TailwindCSS** | 原子化、与设计 Token 配合好、便于统一风格、无运行时开销 |
-| 路由 | **react-router-dom v6** | 声明式路由、嵌套路由、便于做布局与守卫 |
-| 图标 | **lucide-react** | 轻量、树摇友好、风格统一（按需使用，不滥造卡片） |
-| 动画 | **framer-motion**（可选，克制使用） | 声明式动效、支持 `prefers-reduced-motion`；也可纯 CSS 实现 |
-| 字体 | `@fontsource` 自托管 Space Grotesk / Inter | 不依赖第三方 CDN，离线可用 |
+| 构建工具 | **Vite 5** | 极快的冷启动与 HMR，配置简单 |
+| 框架 | **React 18.3** | 函数式组件 + Hooks |
+| 语言 | **TypeScript（strict）** | 强类型保障数据结构与 API 契约 |
+| 样式 | **TailwindCSS 3.4** | 原子化、与设计 Token 配合、无运行时开销 |
+| 路由 | **react-router-dom v6** | 声明式路由、嵌套路由、便于布局与守卫 |
+| 图标 | **内联 SVG 组件**（如 `ArrowIcon`） | 不引入图标库；按需手绘、可控、零额外依赖 |
+| 动画 | **纯 CSS + IntersectionObserver + requestAnimationFrame** | 不引入 framer-motion；轻量、尊重 `prefers-reduced-motion` |
+| 字体 | `@fontsource` 自托管 Space Grotesk / Inter / JetBrains Mono | 不依赖第三方 CDN，离线可用 |
 | 数据 | **localStorage**（通过统一 API 层） | 零后端、持久化、可平滑迁移 |
+
+> 说明：实际项目**没有**使用 `lucide-react`、`framer-motion`、`eslint`。图标为自定义 SVG 组件，动画为 CSS 过渡 + 观察器实现，类型检查用 `tsc --noEmit`。
 
 **核心设计思想**
 
-1. **内容与呈现分离**：所有内容经统一数据 API 层 `src/api` 读写，UI 组件只消费数据、不关心存储细节。
-2. **前后台隔离**：前台与 `/admin` 各自独立布局树，后台受路由守卫保护。
-3. **可迁移**：API 层方法统一返回 `Promise`，即便底层是同步的 `localStorage`。未来替换真实后端时，仅改写 `src/api` 内部实现，调用方零改动。
-4. **单一数据源**：前台与后台读同一数据源，后台写入后前台刷新即反映（并支持跨标签页同步）。
+1. **内容与呈现分离**：所有内容经统一数据 API 层 `src/api` 读写，UI 组件只消费数据。
+2. **前后台隔离**：前台与 `/admin` 各自独立布局树，后台受路由守卫保护、页面懒加载。
+3. **可迁移**：API 层方法统一返回 `Promise`，未来替换真实后端只改 `src/api` 内部实现。
+4. **单一数据源**：前台与后台读同一数据源，写入后前台刷新即反映，并监听 `storage` 事件跨标签页同步。
 
 ---
 
-## 2. 依赖清单（package.json 关键项）
+## 2. 依赖清单（`package.json` 实际内容）
 
 ```jsonc
 {
   "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-router-dom": "^6.26.0",
-    "lucide-react": "^0.4xx",
-    "framer-motion": "^11.x", // 可选
-    "@fontsource/space-grotesk": "^5.x",
-    "@fontsource/inter": "^5.x"
+    "@fontsource/inter": "^5.0.0",
+    "@fontsource/jetbrains-mono": "^5.0.0",
+    "@fontsource/space-grotesk": "^5.0.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-router-dom": "^6.26.0"
   },
   "devDependencies": {
-    "vite": "^5.x",
-    "@vitejs/plugin-react": "^4.x",
-    "typescript": "^5.x",
-    "tailwindcss": "^3.4.x",
-    "postcss": "^8.x",
-    "autoprefixer": "^10.x",
-    "eslint": "^9.x"
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.41",
+    "tailwindcss": "^3.4.10",
+    "typescript": "^5.5.0",
+    "vite": "^5.4.0"
   }
 }
 ```
 
-> 实际版本以 `npm install` 装出的最新稳定版为准，禁止手填不存在的版本号（见 `AGENTS.md`）。
+**脚本**：`dev`（vite）、`build`（`tsc --noEmit && vite build`）、`preview`、`typecheck`（`tsc --noEmit`）。
+
+> 禁止手填不存在的版本号；新增依赖须先说明并遵守 `AGENTS.md` 第 8 节（见其禁止项）。
 
 ---
 
-## 3. 项目目录结构
+## 3. 项目目录结构（当前实际）
 
 ```text
 my-portfolio/
 ├── public/
-│   └── favicon.svg
+│   ├── favicon.svg
+│   └── resume.docx                  # 默认简历（静态文件，由 seedResume 以 URL 引用）
 ├── src/
-│   ├── main.tsx                      # 应用入口，挂载 Provider 与 Router
-│   ├── App.tsx                       # 顶层路由出口
-│   ├── index.css                     # Tailwind 指令 + CSS 变量（设计 Token）+ 基础样式
+│   ├── main.tsx                     # 入口：自托管字体引入 + 挂载 <App/>
+│   ├── App.tsx                      # 顶层：BrowserRouter + Providers + 路由表（含懒加载后台）
+│   ├── index.css                    # Tailwind 指令 + 设计 Token(CSS 变量) + .display-* / reveal 样式
+│   ├── vite-env.d.ts
 │   │
-│   ├── api/                          # ★ 统一数据 API 层（唯一对外数据接口）
-│   │   ├── index.ts                  # 汇总导出 api 对象（profile/projects/resume/auth/db）
-│   │   ├── storage.ts                # localStorage 读写封装（命名空间、JSON 序列化、容错）
-│   │   ├── seed.ts                   # 默认种子数据（首次访问初始化）
-│   │   ├── profile.ts                # 个人信息读写
-│   │   ├── projects.ts               # 项目 CRUD
-│   │   ├── resume.ts                 # 简历上传/读取/删除（File ↔ DataURL）
-│   │   ├── auth.ts                   # 本地会话标记（登录态）
-│   │   └── types.ts                  # 数据模型类型定义（Profile/Project/Resume…）
+│   ├── api/                         # ★ 统一数据 API 层（唯一对外数据接口）
+│   │   ├── index.ts                 # 汇总导出 api 对象（profile/projects/resume/auth/db 全在此实现）
+│   │   ├── storage.ts               # localStorage 读写封装（命名空间、JSON、容错、clearAll）
+│   │   ├── seed.ts                  # 默认种子数据（seedProfile / seedProjects / seedResume）
+│   │   └── types.ts                 # 数据模型类型（Profile/Project/Resume/Database…）
 │   │
 │   ├── context/
-│   │   ├── AuthContext.tsx           # 登录态 Context（供路由守卫）
-│   │   └── DataContext.tsx           # 前台数据 Context（首屏拉取、跨标签同步）
+│   │   ├── AuthContext.tsx          # 登录态（login/logout/isAuthenticated），供 ProtectedRoute
+│   │   └── DataContext.tsx          # 前台数据（profile/projects/resume + reload + storage 同步）
 │   │
-│   ├── components/                   # 通用组件
-│   │   ├── ui/                       # 原子组件
-│   │   │   ├── Button.tsx
-│   │   │   ├── Input.tsx
-│   │   │   ├── Textarea.tsx
-│   │   │   ├── Card.tsx
-│   │   │   ├── Tag.tsx
-│   │   │   ├── Avatar.tsx
-│   │   │   ├── Modal.tsx             # 二次确认
-│   │   │   ├── Toast.tsx             # 全局提示
-│   │   │   ├── EmptyState.tsx
-│   │   │   └── Skeleton.tsx
-│   │   ├── StarField.tsx             # 星空背景 Canvas
-│   │   └── ImageUploader.tsx         # 头像/封面通用图片上传（压缩 + 预览）
+│   ├── components/
+│   │   ├── StarField.tsx            # Canvas 星空背景（rAF、可见性暂停、减少动效静态化）
+│   │   ├── CelestialChart.tsx       # Hero 右侧 SVG 观测星图
+│   │   ├── ScrollReveal.tsx         # 全局滚动揭示（IntersectionObserver + MutationObserver）
+│   │   ├── ProjectRow.tsx           # 项目索引行（列表用）
+│   │   ├── ImageUploader.tsx        # 头像/封面通用图片上传（压缩 + 预览）
+│   │   └── ui/                       # 原子组件
+│   │       ├── Button.tsx            # primary / ghost / link 变体（导出 buttonClass）
+│   │       ├── Field.tsx            # 表单字段（标签 + 输入/textarea 包装）
+│   │       ├── Modal.tsx            # 二次确认弹窗
+│   │       ├── Toast.tsx            # 全局提示（含 ToastProvider）
+│   │       ├── PageLoader.tsx       # 页面/加载态
+│   │       ├── SectionLabel.tsx     # § 编号 + 标题标签
+│   │       ├── Tag.tsx              # 技术栈标签
+│   │       ├── Avatar.tsx           # 头像（无图时生成星环单字）
+│   │       ├── ArrowIcon.tsx        # 箭头 SVG
+│   │       ├── CountUp.tsx          # 数字滚动（进入视口递增，减少动效直接显示）
+│   │       └── MaskText.tsx         # 文字遮罩升起（大标题揭示）
+│   │
+│   ├── hooks/
+│   │   ├── useInView.ts             # 元素进入视口检测
+│   │   └── usePrefersReducedMotion.ts # 是否偏好减少动效
 │   │
 │   ├── layouts/
-│   │   ├── PublicLayout.tsx          # 前台布局：导航 + StarField + 页脚
-│   │   └── AdminLayout.tsx           # 后台布局：侧边导航 + 顶栏
+│   │   ├── PublicLayout.tsx         # 前台：StarField + 顶栏(等宽导航) + 移动菜单 + 页脚
+│   │   └── AdminLayout.tsx          # 后台：侧边导航 + 顶栏
 │   │
 │   ├── pages/
 │   │   ├── public/
@@ -118,17 +129,12 @@ my-portfolio/
 │   │       └── SettingsPage.tsx
 │   │
 │   ├── routes/
-│   │   ├── index.tsx                 # 路由表装配
-│   │   └── ProtectedRoute.tsx        # 后台路由守卫
-│   │
-│   ├── hooks/                        # 自定义 Hooks
-│   │   ├── useToast.ts
-│   │   └── useLocalStorageState.ts   # 可选
+│   │   └── ProtectedRoute.tsx       # 后台路由守卫（路由表本身在 App.tsx）
 │   │
 │   └── lib/
-│       ├── compressImage.ts          # 图片压缩为 DataURL
-│       ├── format.ts                 # 日期/文件大小格式化
-│       └── validate.ts               # 表单校验工具
+│       ├── cn.ts                    # className 合并
+│       ├── format.ts                # formatDate / formatYear / formatBytes / initials
+│       └── compressImage.ts         # 图片压缩为 DataURL
 │
 ├── index.html
 ├── tailwind.config.ts
@@ -140,6 +146,8 @@ my-portfolio/
 └── AGENTS.md
 ```
 
+> 注意：API 层采用**单一 `index.ts` 聚合实现**（`profile / projects / resume / auth / db` 五个域都在其中），**没有** `api/profile.ts`、`api/projects.ts`、`api/resume.ts`、`api/auth.ts` 等拆分文件；路由表写在 `App.tsx` 内，**没有** `routes/index.tsx`。
+
 ---
 
 ## 4. 数据模型与类型定义（`src/api/types.ts`）
@@ -147,7 +155,7 @@ my-portfolio/
 ```ts
 export interface SocialLink {
   id: string;
-  platform: string;   // 如 "GitHub" / "LinkedIn" / "博客"
+  platform: string;   // 如 "GitHub"
   url: string;
 }
 
@@ -155,12 +163,12 @@ export interface Profile {
   name: string;
   title: string;        // 一句话定位/职位
   bio: string;          // 自我介绍，允许换行
-  avatar: string | null; // Base64 Data URL；null 表示使用默认
+  avatar: string | null; // Base64 Data URL；null 表示使用默认星环
   location: string;
   email: string;
   skills: string[];     // 技能标签
   socials: SocialLink[];
-  availability: string; // 如 "可接受合作"
+  availability: string; // 如 "可接受有限合作"
   updatedAt: string;    // ISO 时间
 }
 
@@ -179,14 +187,14 @@ export interface Project {
   updatedAt: string;
 }
 
-/** 新建项目时的入参（id/时间由 API 生成） */
+/** 新建项目的入参（id/时间由 API 生成） */
 export type ProjectInput = Omit<Project, "id" | "createdAt" | "updatedAt">;
 
 export interface Resume {
   fileName: string;
   mimeType: string;
-  size: number;         // 字节
-  dataUrl: string;      // Base64 Data URL
+  size: number;         // 字节；0 表示不显示体积（如静态文件引用）
+  dataUrl: string;      // Base64 Data URL 或静态文件 URL（如 "/resume.docx"）
   uploadedAt: string;   // ISO 时间
 }
 
@@ -199,11 +207,13 @@ export interface Database {
 }
 ```
 
+> 关键点：`Resume.dataUrl` 既可以是**上传文件转成的 Base64 Data URL**，也可以是**指向 `public/` 下静态文件的 URL**（当前默认简历即走后者，见第 5、11 节）。
+
 ---
 
 ## 5. 存储层（`src/api/storage.ts`）
 
-职责：唯一接触 `localStorage` 的地方。对外提供带命名空间、带容错、可选的类型化读写。
+职责：唯一接触 `localStorage` 的地方。对外提供带命名空间、带容错、类型化的读写。
 
 ```ts
 const NS = "portfolio:v1:";
@@ -226,6 +236,12 @@ export const storage = {
   has(key: string): boolean {
     return localStorage.getItem(NS + key) !== null;
   },
+  keys(): string[] {
+    return ["profile", "projects", "resume", "auth"];
+  },
+  clearAll(): void {
+    for (const key of storage.keys()) storage.remove(key);
+  },
 };
 ```
 
@@ -236,22 +252,22 @@ export const storage = {
 | `portfolio:v1:profile` | `Profile` |
 | `portfolio:v1:projects` | `Project[]` |
 | `portfolio:v1:resume` | `Resume \| null` |
-| `portfolio:v1:auth` | 会话标记（如 `{ loggedIn: true, at: ISO }`） |
+| `portfolio:v1:auth` | 会话标记（`{ loggedIn: true, at: ISO }`） |
 
-**初始化（`seed.ts`）**：首次访问时若 `has("profile")` 为假，则用种子数据填充 `profile`、`projects`（示例项目）与 `resume`（null），保证站点首屏不为空且演示完整。种子数据中的头像/封面可为 null（前端展示默认图形）。
+**初始化（`seed.ts` + `index.ts` 的 `ensureSeed`）**：模块加载时若某键不存在则用种子填充
+—— `profile` ← `seedProfile`、`projects` ← `seedProjects`、`resume` ← `seedResume`。
+因此**首次访问即带一条示例项目与一份默认简历**（指向 `public/resume.docx`），首屏不为空。
 
 ---
 
 ## 6. 统一数据 API 层（`src/api/index.ts`）★
 
-**这是本项目的核心契约。** 全部 UI 只通过 `api.*` 读写数据，绝不直接接触 `localStorage`。所有方法返回 `Promise`（即便底层同步），以便未来无痛替换为真实后端。
+**这是本项目的核心契约。** 全部 UI 只通过 `api.*` 读写，绝不直接接触 `localStorage`。所有方法返回 `Promise`（即便底层同步），以便未来替换为真实后端。
 
 ### 6.1 对外接口形态
 
 ```ts
-import type { Profile, Project, ProjectInput, Resume, Database } from "./types";
-
-export interface Api {
+export const api = {
   profile: {
     get(): Promise<Profile>;
     update(patch: Partial<Profile>): Promise<Profile>;
@@ -260,15 +276,15 @@ export interface Api {
   projects: {
     list(): Promise<Project[]>;                 // 已按 order 排序
     get(id: string): Promise<Project | null>;
+    featured(): Promise<Project[]>;             // 精选项目
     create(input: ProjectInput): Promise<Project>;
     update(id: string, patch: Partial<ProjectInput>): Promise<Project>;
     remove(id: string): Promise<void>;
     reorder(orderedIds: string[]): Promise<Project[]>;
-    featured(): Promise<Project[]>;             // 精选项目
   };
   resume: {
     get(): Promise<Resume | null>;
-    upload(file: File): Promise<Resume>;        // 内部转为 DataURL 存储
+    upload(file: File): Promise<Resume>;        // 内部 FileReader 转 DataURL
     remove(): Promise<void>;
   };
   auth: {
@@ -277,83 +293,25 @@ export interface Api {
     isAuthenticated(): Promise<boolean>;
   };
   db: {
-    export(): Promise<string>;                  // 返回 JSON 字符串
-    import(json: string): Promise<void>;        // 校验后整体覆盖
-    reset(): Promise<void>;                     // 恢复种子数据
+    export(): Promise<string>;                  // JSON 字符串
+    import(json: string): Promise<void>;        // 结构校验后整体覆盖
+    reset(): Promise<void>;                     // 恢复种子数据（含 seedResume）
   };
-}
-
-export const api: Api = { /* 各域实现 */ };
-```
-
-### 6.2 实现要点（示例片段）
-
-```ts
-// src/api/projects.ts
-import { storage } from "./storage";
-import { seedProjects } from "./seed";
-import type { Project, ProjectInput } from "./types";
-
-const KEY = "projects";
-const readAll = (): Project[] =>
-  storage.get<Project[]>(KEY, seedProjects).sort((a, b) => a.order - b.order);
-
-export const projectsApi = {
-  async list() {
-    return readAll();
-  },
-  async get(id: string) {
-    return readAll().find((p) => p.id === id) ?? null;
-  },
-  async create(input: ProjectInput): Promise<Project> {
-    const all = readAll();
-    const now = new Date().toISOString();
-    const project: Project = {
-      ...input,
-      id: crypto.randomUUID(),
-      order: input.order ?? all.length,
-      createdAt: now,
-      updatedAt: now,
-    };
-    storage.set(KEY, [...all, project]);
-    return project;
-  },
-  async update(id: string, patch: Partial<ProjectInput>): Promise<Project> {
-    const all = readAll();
-    const idx = all.findIndex((p) => p.id === id);
-    if (idx === -1) throw new Error("项目不存在");
-    const updated: Project = { ...all[idx], ...patch, updatedAt: new Date().toISOString() };
-    all[idx] = updated;
-    storage.set(KEY, all);
-    return updated;
-  },
-  async remove(id: string) {
-    storage.set(KEY, readAll().filter((p) => p.id !== id));
-  },
-  async reorder(orderedIds: string[]) {
-    const map = new Map(readAll().map((p) => [p.id, p]));
-    const next = orderedIds
-      .map((id, i) => {
-        const p = map.get(id);
-        return p ? { ...p, order: i } : null;
-      })
-      .filter(Boolean) as Project[];
-    storage.set(KEY, next);
-    return next;
-  },
-  async featured() {
-    return readAll().filter((p) => p.featured);
-  },
 };
 ```
 
-其余域（profile / resume / auth / db）同构实现；`resume.upload` 使用 `FileReader.readAsDataURL`；`db.import` 先 `JSON.parse` + 结构校验再整体写入。
+### 6.2 实现要点
+
+- 项目管理以 `order` 升序排序（`readAll().sort((a,b)=>a.order-b.order)`），`create` 默认 `order = all.length`，`reorder` 按传入顺序重写 `order`。
+- `resume.upload` 用 `FileReader.readAsDataURL` 将文件转为 DataURL 存入 `dataUrl`；`remove` 置空。
+- `db.import`：`JSON.parse` 后校验 `profile` 存在且 `projects` 为数组，再整体写入；`db.reset` 用 `seedProfile / seedProjects / seedResume` 覆盖（**注意：reset 会把简历也恢复为默认 `seedResume`**）。
+- 口令：`import.meta.env.VITE_ADMIN_PASSWORD ?? "admin"`。
 
 ### 6.3 为什么用 Promise + 统一 API
 
-- **迁移零成本**：真实后端接入时，把上述函数体替换成 `fetch(...)` 即可，`await api.projects.list()` 调用方完全不变。
+- **迁移零成本**：接入真实后端时把函数体换成 `fetch(...)`，`await api.projects.list()` 调用方不变。
 - **一致的异步心智**：UI 始终按异步处理（含 loading/错误态）。
-- **唯一入口**：便于集中做校验、错误处理、日志、埋点。
+- **唯一入口**：集中做校验、错误处理、日志。
 
 ---
 
@@ -361,87 +319,72 @@ export const projectsApi = {
 
 不引入 Redux 等重型库（见 `AGENTS.md` 禁止项），采用 **Context + Hooks**：
 
-- **AuthContext**：持有登录态，提供 `login/logout/isAuthenticated`，初始化时从 `api.auth` 读取。供 `ProtectedRoute` 消费。
-- **DataContext**（前台）：首屏 `Promise.all([api.profile.get(), api.projects.list(), ...])` 拉取数据，向下提供；监听 `window` 的 `storage` 事件，其他标签页改动时重新拉取，实现跨页同步。
-- 后台页面直接调用 `api.*`（写操作后可用本地 state 刷新列表），无需全局 store。
+- **AuthProvider / `useAuth()`**：持有 `isAuthenticated`、`loading`、`login`、`logout`；初始化时调 `api.auth.isAuthenticated()`。供 `ProtectedRoute` 消费。
+- **DataProvider / `useData()`**：首屏 `Promise.all([api.profile.get(), api.projects.list(), api.resume.get()])` 拉取，暴露 `profile / projects / resume / loading / reload`；监听 `window` 的 `storage` 事件（键前缀 `portfolio:v1:`）实现**跨标签页同步**。
+- 后台页面直接调用 `api.*`，写操作后本地刷新列表。
+
+**Provider 嵌套顺序（`App.tsx`）**：`BrowserRouter → ToastProvider → AuthProvider → DataProvider → 路由`。
 
 ---
 
 ## 8. 路由设计（前台与 `/admin` 隔离）
 
-### 8.1 路由表
+路由表直接写在 `src/App.tsx`（`BrowserRouter` + `Routes`），不使用 `createBrowserRouter`。
 
 ```tsx
-// src/routes/index.tsx
-import { createBrowserRouter } from "react-router-dom";
+<BrowserRouter>
+  <ToastProvider><AuthProvider><DataProvider>
+    <ScrollReveal />
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        <Route path="/" element={<PublicLayout />}>
+          <Route index element={<HomePage />} />
+          <Route path="about" element={<AboutPage />} />
+          <Route path="projects" element={<ProjectsPage />} />
+          <Route path="projects/:id" element={<ProjectDetailPage />} />
+          <Route path="resume" element={<ResumePage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
 
-export const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <PublicLayout />,               // 前台布局（含 StarField/导航/页脚）
-    children: [
-      { index: true, element: <HomePage /> },
-      { path: "about", element: <AboutPage /> },
-      { path: "projects", element: <ProjectsPage /> },
-      { path: "projects/:id", element: <ProjectDetailPage /> },
-      { path: "resume", element: <ResumePage /> },
-      { path: "*", element: <NotFoundPage /> },
-    ],
-  },
-  { path: "/admin/login", element: <LoginPage /> },
-  {
-    path: "/admin",
-    element: <ProtectedRoute><AdminLayout /></ProtectedRoute>, // 守卫 + 后台布局
-    children: [
-      { index: true, element: <DashboardPage /> },
-      { path: "profile", element: <ProfileEditPage /> },
-      { path: "projects", element: <ProjectsManagePage /> },
-      { path: "resume", element: <ResumeManagePage /> },
-      { path: "settings", element: <SettingsPage /> },
-    ],
-  },
-]);
+        <Route path="/admin/login" element={<LoginPage />} />   {/* 懒加载，不守卫 */}
+
+        <Route path="/admin" element={
+          <ProtectedRoute><AdminLayout /></ProtectedRoute>
+        }>
+          <Route index element={<DashboardPage />} />
+          <Route path="profile" element={<ProfileEditPage />} />
+          <Route path="projects" element={<ProjectsManagePage />} />
+          <Route path="resume" element={<ResumeManagePage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="*" element={<Navigate to="/admin" replace />} />
+        </Route>
+      </Routes>
+    </Suspense>
+  </DataProvider></AuthProvider></ToastProvider>
+</BrowserRouter>
 ```
 
-### 8.2 隔离原则
+### 隔离原则
 
-- **布局隔离**：前台 `PublicLayout`（海报感、星空）与后台 `AdminLayout`（工具感、侧边栏）互不嵌套。
-- **鉴权隔离**：`/admin` 及其子路由统一由 `ProtectedRoute` 包裹；`/admin/login` 独立于守卫之外。
-- **代码分割**：后台页面用 `React.lazy` + `Suspense` 懒加载，避免后台代码进入前台首包。
-- **视觉隔离**：前台不暴露管理入口（可选的隐蔽页脚入口由配置控制）。
+- **布局隔离**：`PublicLayout`（星空海报感）与 `AdminLayout`（工具感侧边栏）互不嵌套。
+- **鉴权隔离**：`/admin` 及子路由统一由 `ProtectedRoute` 包裹；`/admin/login` 独立于守卫之外。
+- **代码分割**：所有后台页面用 `React.lazy` + 顶层 `Suspense` 懒加载，不进入前台首包。
+- **视觉隔离**：前台不暴露管理入口。
 
 ---
 
 ## 9. 路由守卫（`src/routes/ProtectedRoute.tsx`）
 
-```tsx
-import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-
-export function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, loading } = useAuth();
-  const location = useLocation();
-
-  if (loading) return <FullscreenLoader />;          // 等待登录态初始化
-  if (!isAuthenticated) {
-    return <Navigate to="/admin/login" state={{ from: location }} replace />;
-  }
-  return <>{children}</>;
-}
-```
-
-要求：
-
-- 未登录访问任意 `/admin/*` → 重定向到 `/admin/login`，并记录来源以便登录后跳回。
-- 已登录访问 `/admin/login` → 重定向到 `/admin`。
-- 登录态初始化期间显示加载，避免"闪烁后跳转"。
-- 退出登录后立即失效并跳回登录页。
+- 未登录访问任意 `/admin/*` → `Navigate` 到 `/admin/login` 并携带 `state.from`。
+- 登录态初始化（`loading`）期间显示加载，避免"闪烁后跳转"。
+- 已登录访问 `/admin/login` 的处理在登录页内完成（重定向到 `/admin`）。
+- 退出登录立即失效并跳回登录页。
 
 ---
 
 ## 10. 主题与样式系统
 
-### 10.1 Tailwind 配置（`tailwind.config.ts`）要点
+### 10.1 Tailwind（`tailwind.config.ts`）
 
 ```ts
 export default {
@@ -449,67 +392,62 @@ export default {
   theme: {
     extend: {
       colors: {
-        ground: "#070912",
-        "ground-2": "#0C101C",
-        "ground-3": "#121828",
-        ink: "#EEF1F6",
-        "ink-muted": "#8B95A7",
-        "ink-faint": "#5A6478",
+        ground: "#070912", "ground-2": "#0C101C", "ground-3": "#121828",
+        ink: "#EEF1F6", "ink-muted": "#8B95A7", "ink-faint": "#5A6478",
         line: "rgba(255,255,255,0.08)",
-        accent: "#F2C879",
-        "accent-dim": "#C9A25E",
-        star: "#CFE0FF",
-        danger: "#E5484D",
+        accent: "#F2C879", "accent-dim": "#C9A25E", star: "#CFE0FF", danger: "#E5484D",
       },
       fontFamily: {
         display: ["Space Grotesk", "ui-sans-serif", "system-ui", "sans-serif"],
         sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
-        mono: ["JetBrains Mono", "ui-monospace", "monospace"],
+        mono: ["JetBrains Mono", "ui-monospace", "SFMono-Regular", "monospace"],
       },
       maxWidth: { content: "1200px" },
       letterSpacing: { tightest: "-0.045em" },
     },
   },
+  plugins: [],
 } satisfies Config;
 ```
 
-字体经 `@fontsource/*` 自托管，在 `main.tsx` 按需引入权重（Space Grotesk 400–700、Inter 400–600、JetBrains Mono 400/500）。
+字体经 `@fontsource/*` 在 `main.tsx` 按需引入（Space Grotesk 400–700、Inter 400–600、JetBrains Mono 400/500）。
 
-### 10.2 CSS 变量（`index.css`）
+### 10.2 CSS 变量与流体字号（`index.css`）
 
-设计 Token 以 CSS 变量集中定义（色板见 PRD 7.2），Tailwind 引用同一套色值，组件优先用语义化类名或变量，避免散落魔法值。
+设计 Token 以 CSS 变量集中定义；含流体标题类 `.display-xl / .display-l / .display-m` 及滚动揭示相关 `.reveal` / `.is-visible` 过渡样式。组件优先使用 Tailwind 语义色或 CSS 变量，避免散落魔法值。
 
-### 10.3 星空背景（`StarField.tsx`）
+### 10.3 星空与星图
 
-- `position: fixed; inset: 0; z-index: -1; pointer-events: none;`。
-- Canvas 2D 绘制，星数随视口自适应（上限约 200），逐帧亮度呼吸 + 滚动视差。
-- `IntersectionObserver`/`visibilitychange` 在不可见时暂停 `requestAnimationFrame`。
-- `matchMedia("(prefers-reduced-motion: reduce)")` 命中时静态渲染。
+- `StarField.tsx`：`position: fixed; inset: 0; z-index: -1; pointer-events: none;`，Canvas 2D 绘制，星数随视口自适应，逐帧亮度呼吸 + 滚动视差；`visibilitychange` 不可见时暂停 `requestAnimationFrame`；命中 `prefers-reduced-motion: reduce` 时静态渲染。
+- `CelestialChart.tsx`：Hero 右侧 SVG「观测星图」（刻度框、同心圆、放射刻度、星座连线、编号星点、坐标标注、中心暖金星）。
 
 ---
 
 ## 11. 图像与文件处理
 
-- **图片上传**（头像 / 项目封面）：`ImageUploader` 读取 `File` → `compressImage()`（Canvas 缩放、控制边长与质量）→ 输出 Data URL → 存入对应字段。限制类型（png/jpg/webp）与原始大小（≤ 2MB）。
-- **简历上传**：`FileReader.readAsDataURL` 转 Base64 存入 `Resume.dataUrl`；限制 PDF（可放宽 doc/docx）、≤ 5MB。
-- **容量管理**：所有 Data URL 共享 `localStorage` 配额（约 5MB），设置页展示占用并提供导入导出/重置以清理。
-- **下载**：简历下载用 `<a href={dataUrl} download={fileName}>` 触发。
+- **图片上传**（头像 / 项目封面）：`ImageUploader` 读取 `File` → `compressImage()`（Canvas 缩放控制边长与质量）→ Data URL → 存入对应字段。
+- **简历上传**：`FileReader.readAsDataURL` 转 Base64 存入 `Resume.dataUrl`；限制类型与大小。
+- **默认简历（静态文件）**：`seedResume.dataUrl` 指向 `public/resume.docx`（URL，而非内联 Base64）。
+  - **为什么不用内联 Base64**：超大 Base64 字符串在源码/编辑器/复制粘贴中极易被破坏，一旦字节损坏（长度不符、zip 中央目录错乱）文件即打不开。改为静态文件由浏览器直接提供原始字节最稳定。
+  - **替换方式**：用相同文件名覆盖 `public/resume.docx`（全局立即生效）；或在后台「简历」重新上传（写入 `localStorage`，仅当前浏览器）。传 **PDF** 可获得前台内嵌预览。
+- **容量管理**：上传的 Data URL 共享 `localStorage`（约 5MB）配额；设置页展示占用并提供导入导出/重置以清理。静态文件不计入配额。
+- **下载**：`<a href={dataUrl} download={fileName}>`；`dataUrl` 为静态 URL 时同样可下载。
 
 ---
 
 ## 12. 错误处理与反馈
 
-- 统一 `Toast`（成功 / 错误 / 提示），挂在根级 Provider。
-- API 层抛出的错误（如"项目不存在"）在调用处 `try/catch` 并 Toast。
-- 表单：字段级校验（`lib/validate.ts`）+ 提交态（禁用按钮、loading）。
+- 统一 `Toast`（成功 / 错误 / 提示），由 `ToastProvider` 挂在根级。
+- API 抛错（如"项目不存在"）在调用处 `try/catch` 并 Toast。
+- 表单：受控组件 + 提交态（禁用按钮、loading）。
 - 路由级：`NotFoundPage`、`ProjectDetailPage` 的"项目不存在"兜底。
 
 ---
 
 ## 13. 数据种子与版本迁移
 
-- `seed.ts` 提供首访默认数据（示例项目 2–3 个、默认 Profile、`resume: null`）。
-- `Database.version` 字段预留：读取时若版本低于当前，执行迁移函数（未来用），避免数据结构演进导致白屏。
+- `seed.ts` 提供首访默认数据：`seedProfile`（当前为「范梦菡」）、`seedProjects`（当前 **1 个**示例项目「每日一语插件」）、`seedResume`（指向 `public/resume.docx`）。
+- `Database.version` 字段预留，便于未来迁移。
 - `storage.get` 解析失败回退默认值，保证鲁棒性。
 
 ---
@@ -519,35 +457,33 @@ export default {
 | 步骤 | 操作 |
 | --- | --- |
 | 1 | 保留 `src/api/types.ts` 与 `src/api/index.ts` 的**接口签名不变** |
-| 2 | 将 `profile.ts / projects.ts / resume.ts` 内部实现改为 `fetch` 调用真实接口 |
-| 3 | 前端调用方（页面/Context）**零改动** |
+| 2 | 将 `index.ts` 各域内部实现改为 `fetch` 调用真实接口 |
+| 3 | 前端调用方（页面 / Context）**零改动** |
 | 4 | `auth` 改为真实登录（JWT/Cookie），守卫逻辑不变 |
 | 5 | 上传改为 multipart 上传，返回 URL 替代 Data URL |
 
-因为所有调用已经是 `Promise`，迁移对 UI 完全透明。
+因为所有调用已是 `Promise`，迁移对 UI 完全透明。
 
 ---
 
 ## 15. 构建与部署
 
 - 开发：`npm run dev`。
-- 类型检查：`npx tsc --noEmit`。
-- 构建：`npm run build`（产物在 `dist/`）。
+- 类型检查：`npm run typecheck`（等价 `npx tsc --noEmit`）。
+- 构建：`npm run build`（`tsc --noEmit && vite build`，产物在 `dist/`）。
 - 预览：`npm run preview`。
-- 部署：静态托管（Vercel / Netlify / GitHub Pages 等）。若部署到子路径，需配置 Vite `base`；SPA 需配置 history 回落（`/index.html`）以支持 `/admin` 等深链刷新。
+- 部署：静态托管（Vercel / Netlify / GitHub Pages 等）。子路径部署需配置 Vite `base`（并相应把 `seedResume.dataUrl` 改成带 base 的路径）；SPA 需配置 history 回落以支持 `/admin` 等深链刷新。
 
 ---
 
 ## 16. 当前实现进度
 
-**已完成（可 `npm run dev` / `npm run build` 运行，`tsc --noEmit` 通过）**
+**已全部完成**（可 `npm run dev` / `npm run build`，`npm run typecheck` 通过）
 
 - 工程脚手架：Vite + React 18 + TS(strict) + Tailwind v3，路径别名 `@ → src`，字体自托管。
-- 设计系统：`tailwind.config.ts` 色板、`index.css` CSS 变量与 `.display-xl/l/m` 流体字号、星空/星图组件。
-- 数据层：`src/api`（`types / storage / seed / index`）完整实现 profile / projects / resume / auth / db，统一返回 `Promise`；`import.meta.env.VITE_ADMIN_PASSWORD` 提供默认口令。
-- 前台：`PublicLayout` + 首页 / 关于 / 项目 / 项目详情 / 简历 / 404，数据经 `DataContext` 读取，含空/错/加载态、响应式与减少动效支持。
-
-**待实现（下一步）**
-
-- 后台 `/admin`：`AuthContext` + `ProtectedRoute` 守卫、登录页、仪表盘、个人资料（含头像压缩上传）、项目管理（增删改/排序/精选）、简历上传、设置（导入/导出/重置）。
-- 跨标签页同步已就绪（`DataContext` 监听 `storage` 事件）。
+- 设计系统：`tailwind.config.ts` 色板、`index.css` CSS 变量与 `.display-*` 流体字号、`StarField` / `CelestialChart`。
+- 动效体系：`ScrollReveal`（全局滚动揭示）、`MaskText`（标题遮罩升起）、`CountUp`（数字滚动）、`useInView` / `usePrefersReducedMotion`，全程尊重减少动效偏好。
+- 数据层：`src/api`（`types / storage / seed / index`）完整实现 profile / projects / resume / auth / db，统一返回 `Promise`；`VITE_ADMIN_PASSWORD` 提供默认口令；简历默认走静态文件。
+- 前台：`PublicLayout` + 首页 / 关于 / 项目 / 项目详情 / 简历 / 404，数据经 `DataContext` 读取，含空 / 错 / 加载态、响应式与减少动效。
+- 后台：`AuthContext` + `ProtectedRoute` 守卫、登录页、仪表盘、个人资料（含头像压缩上传）、项目管理（增删改 / 排序 / 精选）、简历上传、设置（导入 / 导出 / 重置），全部懒加载。
+- 同步：`DataContext` 监听 `storage` 事件，跨标签页改动自动刷新。

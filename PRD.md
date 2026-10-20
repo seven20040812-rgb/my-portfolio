@@ -1,7 +1,7 @@
 # 产品需求文档（PRD）— 个人展示网站 + 管理后台
 
-> 文档版本：v1.0
-> 状态：已评审，可进入开发
+> 文档版本：v1.1（与当前代码同步）
+> 状态：已实现并跑通（`dev` / `build` / `typecheck` 均通过）
 > 关联文档：`TECH_DESIGN.md`（技术设计）、`AGENTS.md`（AI 开发规范）
 
 ---
@@ -56,9 +56,11 @@
 | --- | --- | --- |
 | **Profile（个人信息）** | 全局单例，站点主人资料 | 姓名、职位/一句话简介、头像、自我介绍、所在城市、邮箱、社交链接、技能标签、可用状态等 |
 | **Project（项目）** | 可增删改的列表 | id、标题、摘要、详情、封面图、技术栈标签、仓库链接、在线地址、是否精选、排序、创建/更新时间 |
-| **Resume（简历）** | 全局单例，一份简历文件 | 文件名、MIME、大小、Base64 数据、上传时间；支持"未上传"空态 |
+| **Resume（简历）** | 全局单例，一份简历文件（或指向静态文件的引用） | 文件名、MIME、大小、`dataUrl`（Base64 或静态文件 URL，如 `/resume.docx`）、上传时间；支持"未上传"空态 |
 
 完整字段与类型定义见 `TECH_DESIGN.md` 第 4 节。
+
+> **当前默认内容**：种子数据包含一份 Profile（「范梦菡」）、**1 个**示例项目「每日一语插件」，以及一份**默认简历**（`seedResume` 指向 `public/resume.docx` 静态文件）。首次访问即带这些内容，不再为空。
 
 ---
 
@@ -133,9 +135,10 @@
 
 ### 4.6 简历 Resume `/resume`
 
-- **在线预览**：若简历为 PDF，用 `<iframe>` / `<embed>` 内嵌预览；非 PDF 或浏览器无法预览时，显示文件信息卡（名称、大小、更新时间）+ 下载按钮。
-- **下载**：通过生成的下载链接（`a[download]`）下载原文件。
-- **空态**：未上传简历时，展示"简历暂未提供"的优雅空态。
+- **在线预览**：若简历为 PDF，用 `<iframe>` 内嵌预览；非 PDF（如 Word）或浏览器无法预览时，显示 `DOCUMENT` 信息卡（文件名、更新时间、下载按钮）。
+- **下载**：通过下载链接（`a[download]`）下载原文件。
+- **空态**：未上传/无简历时，展示"简历暂未提供"的优雅空态。
+- **默认简历**：随种子数据内置一份 `public/resume.docx`（静态文件，指向式引用），首次访问即可下载；用同名文件覆盖即可全局替换，或后台重新上传（上传 PDF 可获内嵌预览）。
 
 ### 4.7 404 `/`
 
@@ -306,7 +309,9 @@
 **已实现的组件与文件**
 
 - `components/StarField.tsx`（Canvas 星空）、`components/CelestialChart.tsx`（SVG 星图）
-- `components/ui/*`：`Button`（primary / ghost / link）、`Tag`、`SectionLabel`、`ArrowIcon`、`Avatar`（无头像时生成星环单字）、`PageLoader`
+- 动效：`components/ScrollReveal.tsx`（全局滚动揭示）、`components/ui/MaskText.tsx`（标题遮罩升起）、`components/ui/CountUp.tsx`（数字滚动）、`hooks/useInView.ts`、`hooks/usePrefersReducedMotion.ts`
+- `components/ui/*`：`Button`（primary / ghost / link）、`Field`、`Modal`、`Toast`、`Tag`、`SectionLabel`、`ArrowIcon`、`Avatar`（无头像时生成星环单字）、`PageLoader`
+- `components/ProjectRow.tsx`（项目索引行）、`components/ImageUploader.tsx`（图片压缩上传）
 - `layouts/PublicLayout.tsx`：固定顶栏（等宽导航）+ 移动折叠菜单 + 设计感页脚
 - 页面：`HomePage / AboutPage / ProjectsPage / ProjectDetailPage / ResumePage / NotFoundPage`
 
@@ -327,25 +332,25 @@
 
 ## 9. 里程碑与验收标准
 
-**里程碑**
+**里程碑（均已完成）**
 
-1. 文档就绪（本 PRD + 技术设计 + 开发规范）——已完成。
-2. 脚手架与设计系统（Vite + TS + Tailwind、星空背景、Tokens、基础组件、路由骨架）。
-3. 前台页面（首页 / 关于 / 项目 / 详情 / 简历 / 404）。
-4. 数据层与 API（`src/api`、`localStorage` 持久化、种子数据）。
-5. 后台页面（登录 + 守卫 + 资料 / 项目 / 简历 / 设置）。
-6. 联调、空/错/加载态、动效打磨、验收。
+1. ✅ 文档就绪（本 PRD + 技术设计 + 开发规范）。
+2. ✅ 脚手架与设计系统（Vite + React 18 + TS + Tailwind、星空背景、星图、Tokens、基础组件、路由）。
+3. ✅ 前台页面（首页 / 关于 / 项目 / 详情 / 简历 / 404）。
+4. ✅ 数据层与 API（`src/api` 单一聚合、`localStorage` 持久化、种子数据、静态默认简历）。
+5. ✅ 后台页面（登录 + 守卫 + 资料 / 项目 / 简历 / 设置，全部懒加载）。
+6. ✅ 动效打磨（滚动揭示 / 标题遮罩 / 数字滚动，尊重减少动效）、空 / 错 / 加载态、验收。
 
 **验收标准（Definition of Done）**
 
-- [ ] 前台所有内容均来自 API 层，且可在后台修改。
-- [ ] 后台修改个人信息、头像、项目、简历后，**刷新前台数据仍在**（持久化成立）。
-- [ ] 头像、项目封面、简历文件上传后能正确预览/下载。
-- [ ] 项目的增删改、排序、精选均生效且持久化。
-- [ ] `/admin/*` 未登录时被重定向到登录页；登录后可访问。
-- [ ] 所有空状态、错误、成功反馈齐备。
-- [ ] 深色星空风格统一、响应式良好、无禁用视觉元素。
-- [ ] `tsc --noEmit` 与构建通过，无未处理类型错误。
+- [x] 前台所有内容均来自 API 层，且可在后台修改。
+- [x] 后台修改个人信息、头像、项目、简历后，**刷新前台数据仍在**（持久化成立）。
+- [x] 头像、项目封面上传后能正确预览；简历能正确预览/下载（默认简历为静态 `public/resume.docx`，可打开、可下载）。
+- [x] 项目的增删改、排序、精选均生效且持久化。
+- [x] `/admin/*` 未登录时被重定向到登录页；登录后可访问。
+- [x] 所有空状态、错误、成功反馈齐备。
+- [x] 深色星空风格统一、响应式良好、无禁用视觉元素。
+- [x] `tsc --noEmit`（`npm run typecheck`）与构建（`npm run build`）通过，无未处理类型错误。
 
 ---
 

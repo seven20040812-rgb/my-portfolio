@@ -43,7 +43,7 @@ export function ResumePage() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-x-8 gap-y-3 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-faint">
-              <span>{formatBytes(resume.size)}</span>
+              {resume.size > 0 && <span>{formatBytes(resume.size)}</span>}
               <span>更新于 {formatDate(resume.uploadedAt)}</span>
               <a
                 href={resume.dataUrl}

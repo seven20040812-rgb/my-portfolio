@@ -34,7 +34,7 @@
 - 使用**命名导出**（`export function Xxx`），页面组件可用默认导出；全项目保持一致。
 - 优先 `const`、纯函数、早返回，减少嵌套。
 - **不写解释"做了什么"的废话注释**；只对非显然的意图、权衡、约束写注释。
-- 字符串引号、分号、缩进遵循项目 ESLint/Prettier（默认：双引号、分号、2 空格）。
+- 项目未配置 ESLint/Prettier；统一使用双引号、语句以分号结尾、2 空格缩进，并与既有代码保持一致。
 
 ### 3.2 TypeScript
 
@@ -55,10 +55,10 @@
 
 | 类型 | 规则 | 示例 |
 | --- | --- | --- |
-| 组件文件 | PascalCase，与组件同名 | `ProjectCard.tsx` |
+| 组件文件 | PascalCase，与组件同名 | `ProjectRow.tsx` |
 | 页面组件 | `XxxPage` | `HomePage.tsx` / `ProjectsManagePage.tsx` |
 | 布局 | `XxxLayout` | `PublicLayout.tsx` |
-| Hook | `useXxx` | `useToast.ts` |
+| Hook | `useXxx` | `useInView.ts` |
 | 工具函数 | camelCase | `compressImage.ts` / `format.ts` |
 | 类型/接口 | PascalCase | `Profile` / `ProjectInput` |
 | 常量 | UPPER_SNAKE（全局）/ camelCase（局部） | `STORAGE_NS` |
@@ -90,6 +90,8 @@
 - **不得**在组件里拼 `localStorage` 键名、不得手写序列化逻辑——这些属于 `api/storage`。
 - 后台写操作成功后：刷新本地 state 或重新拉取，保证 UI 与存储一致。
 - 新增数据字段：**先**更新 `types.ts` + `seed.ts` + API 实现 + 相关表单/展示，**再**提交。
+- `Resume.dataUrl` 可为 Base64（后台上传）或指向 `public/` 静态文件的 URL（默认简历走后者）；**不要**再往 `seed.ts` 里内联超大 Base64（易被破坏导致文件打不开）。
+- 默认简历为静态文件 `public/resume.docx`：替换同名文件即全局生效；上传请走后台上传。
 
 ---
 
@@ -125,7 +127,9 @@
 - 禁止提交注释掉的旧代码、调试 `console.log`（保留必要的 `console.error` 需克制）。
 - 禁止引入未经说明的图片/字体 CDN 依赖（字体用 `@fontsource` 自托管）。
 
-**允许的依赖**：react、react-dom、react-router-dom、tailwindcss、typescript、vite、lucide-react、framer-motion（克制使用，可省）、@fontsource 字体、eslint 相关。
+**允许的依赖**：react、react-dom、react-router-dom、tailwindcss、typescript、vite、postcss、autoprefixer、@fontsource 字体、@types/*。
+
+> 本项目**未使用**图标库（图标为内联 SVG 组件，如 `ArrowIcon`）、动画库（动效用 CSS 过渡 + `IntersectionObserver` + `requestAnimationFrame`），也**未配置 eslint**（类型检查以 `npm run typecheck` 为准）。
 
 ---
 
