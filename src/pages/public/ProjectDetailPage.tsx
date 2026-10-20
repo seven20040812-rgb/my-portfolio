@@ -6,6 +6,7 @@ import { SectionLabel } from "@/components/ui/SectionLabel";
 import { buttonClass } from "@/components/ui/Button";
 import { ArrowIcon } from "@/components/ui/ArrowIcon";
 import { CelestialChart } from "@/components/CelestialChart";
+import { MaskText } from "@/components/ui/MaskText";
 import { formatDate } from "@/lib/format";
 
 export function ProjectDetailPage() {
@@ -42,9 +43,11 @@ export function ProjectDetailPage() {
       </Link>
 
       <div className="mt-10 grid gap-10 lg:grid-cols-12">
-        <header className="lg:col-span-7">
+        <header data-reveal className="lg:col-span-7">
           <SectionLabel index="OBJECT">项目</SectionLabel>
-          <h1 className="display-l mt-6 text-ink">{project.title}</h1>
+          <h1 className="display-l mt-6 text-ink">
+            <MaskText>{project.title}</MaskText>
+          </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-ink-muted">
             {project.summary}
           </p>
@@ -60,7 +63,11 @@ export function ProjectDetailPage() {
           </div>
         </header>
 
-        <aside className="lg:col-span-4 lg:col-start-9">
+        <aside
+          data-reveal
+          style={{ animationDelay: "120ms" }}
+          className="lg:col-span-4 lg:col-start-9"
+        >
           <dl className="space-y-4 border-t border-line pt-6">
             <div className="flex items-baseline justify-between gap-4">
               <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-faint">
@@ -107,7 +114,10 @@ export function ProjectDetailPage() {
         </aside>
       </div>
 
-      <div className="mt-14 overflow-hidden rounded-sm border border-line">
+      <div
+        data-reveal
+        className="mt-14 overflow-hidden rounded-sm border border-line"
+      >
         {project.cover ? (
           <img
             src={project.cover}
@@ -122,7 +132,7 @@ export function ProjectDetailPage() {
       </div>
 
       <div className="mt-14 grid gap-10 lg:grid-cols-12">
-        <div className="lg:col-span-8 lg:col-start-1">
+        <div data-reveal className="lg:col-span-8 lg:col-start-1">
           {project.detail.split("\n\n").map((paragraph, i) => (
             <p
               key={i}

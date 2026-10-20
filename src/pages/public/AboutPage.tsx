@@ -2,6 +2,7 @@ import { useData } from "@/context/DataContext";
 import { Avatar } from "@/components/ui/Avatar";
 import { PageLoader } from "@/components/ui/PageLoader";
 import { SectionLabel } from "@/components/ui/SectionLabel";
+import { MaskText } from "@/components/ui/MaskText";
 
 export function AboutPage() {
   const { profile, loading } = useData();
@@ -14,7 +15,7 @@ export function AboutPage() {
 
       <div className="mt-12 grid gap-14 lg:grid-cols-12">
         {/* Sidebar */}
-        <aside className="lg:col-span-4">
+        <aside data-reveal className="lg:col-span-4">
           <Avatar src={profile.avatar} name={profile.name} size="lg" />
           <h1 className="mt-6 font-display text-3xl font-medium tracking-tight text-ink">
             {profile.name}
@@ -63,8 +64,14 @@ export function AboutPage() {
         </aside>
 
         {/* Body */}
-        <div className="lg:col-span-7 lg:col-start-6">
-          <h2 className="display-l text-ink">在设计与工程之间。</h2>
+        <div
+          data-reveal
+          style={{ animationDelay: "120ms" }}
+          className="lg:col-span-7 lg:col-start-6"
+        >
+          <h2 className="display-l text-ink">
+            <MaskText>在设计与工程之间。</MaskText>
+          </h2>
           <div className="mt-8 space-y-5">
             {profile.bio.split("\n\n").map((paragraph, i) => (
               <p

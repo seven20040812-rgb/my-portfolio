@@ -14,6 +14,8 @@ export function ProjectRow({
   return (
     <Link
       to={`/projects/${project.id}`}
+      data-reveal
+      style={{ animationDelay: `${Math.min(index, 6) * 60}ms` }}
       className="group grid grid-cols-12 items-center gap-4 border-b border-line py-6 transition-colors hover:bg-ground-2/50 md:py-7"
     >
       <span className="col-span-2 font-mono text-[11px] text-ink-faint md:col-span-1">
@@ -44,7 +46,7 @@ export function ProjectRow({
         <span className="font-mono text-[11px] text-ink-faint">
           {formatYear(project.createdAt)}
         </span>
-        <ArrowIcon className="h-4 w-4 text-ink-faint transition-colors group-hover:text-accent" />
+        <ArrowIcon className="h-4 w-4 text-ink-faint transition-transform duration-200 group-hover:translate-x-1 group-hover:text-accent" />
       </div>
     </Link>
   );

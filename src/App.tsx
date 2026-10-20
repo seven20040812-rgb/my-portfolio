@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { DataProvider } from "@/context/DataContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { ToastProvider } from "@/components/ui/Toast";
+import { ScrollReveal } from "@/components/ScrollReveal";
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
 import { PageLoader } from "@/components/ui/PageLoader";
 import { PublicLayout } from "@/layouts/PublicLayout";
@@ -29,6 +30,7 @@ export default function App() {
       <ToastProvider>
         <AuthProvider>
           <DataProvider>
+            <ScrollReveal />
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/" element={<PublicLayout />}>

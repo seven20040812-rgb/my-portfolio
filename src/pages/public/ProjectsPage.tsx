@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useData } from "@/context/DataContext";
 import { PageLoader } from "@/components/ui/PageLoader";
 import { SectionLabel } from "@/components/ui/SectionLabel";
+import { MaskText } from "@/components/ui/MaskText";
 import { ProjectRow } from "@/components/ProjectRow";
 
 export function ProjectsPage() {
@@ -12,10 +13,12 @@ export function ProjectsPage() {
 
   return (
     <section className="container-content py-16 md:py-24">
-      <div className="flex items-end justify-between gap-6">
+      <div data-reveal className="flex items-end justify-between gap-6">
         <div>
           <SectionLabel index="WORK">项目档案</SectionLabel>
-          <h1 className="display-l mt-6 text-ink">作品</h1>
+          <h1 className="display-l mt-6 text-ink">
+            <MaskText>作品</MaskText>
+          </h1>
         </div>
         <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink-faint">
           {String(projects.length).padStart(2, "0")} 项

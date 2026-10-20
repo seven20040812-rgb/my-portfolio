@@ -1,10 +1,20 @@
 import { Link } from "react-router-dom";
+import type { ReactNode } from "react";
 
 import { useData } from "@/context/DataContext";
 import { PageLoader } from "@/components/ui/PageLoader";
+import { CountUp } from "@/components/ui/CountUp";
 import { formatDate } from "@/lib/format";
 
-function StatCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function StatCard({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: ReactNode;
+  hint?: string;
+}) {
   return (
     <div className="rounded-sm border border-line bg-ground-2/30 p-5">
       <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-faint">
@@ -63,8 +73,16 @@ export default function DashboardPage() {
       </header>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="项目总数" value={String(projects.length)} hint={`${featured} 个精选`} />
-        <StatCard label="个人信息完成度" value={`${completeness}%`} hint="完善资料更可信" />
+        <StatCard
+          label="项目总数"
+          value={<CountUp value={projects.length} />}
+          hint={`${featured} 个精选`}
+        />
+        <StatCard
+          label="个人信息完成度"
+          value={<CountUp value={completeness} suffix="%" />}
+          hint="完善资料更可信"
+        />
         <StatCard
           label="简历"
           value={resume ? "已上传" : "未上传"}
@@ -81,10 +99,12 @@ export default function DashboardPage() {
             { to: "/admin/projects", title: "项目管理", desc: "增删改 / 排序 / 精选" },
             { to: "/admin/resume", title: "简历", desc: "上传或替换文件" },
             { to: "/admin/settings", title: "数据", desc: "导入 / 导出 / 重置" },
-          ].map((item) => (
+          ].map((item, i) => (
             <Link
               key={item.to}
               to={item.to}
+              data-reveal
+              style={{ animationDelay: `${i * 60}ms` }}
               className="group rounded-sm border border-line bg-ground-2/20 p-5 transition-colors hover:border-accent/40 hover:bg-ground-2/40"
             >
               <p className="font-display text-base font-medium text-ink group-hover:text-accent">

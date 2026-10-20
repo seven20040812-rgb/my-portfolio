@@ -1,3 +1,6 @@
+import { useInView } from "@/hooks/useInView";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+
 const points = [
   { x: 128, y: 138, label: "A·01" },
   { x: 206, y: 104 },
@@ -24,8 +27,16 @@ const links: Array<[number, number]> = [
 ];
 
 export function CelestialChart({ className }: { className?: string }) {
+  const { ref, inView } = useInView<SVGSVGElement>({
+    once: true,
+    threshold: 0.25,
+  });
+  const reduced = usePrefersReducedMotion();
+  const drawn = reduced || inView;
+
   return (
     <svg
+      ref={ref}
       viewBox="0 0 420 420"
       className={className}
       role="img"
@@ -59,7 +70,7 @@ export function CelestialChart({ className }: { className?: string }) {
         })}
       </g>
 
-      {/* constellation links */}
+      {/* constellation links —— 进入视口后逐段描边绘制 */}
       <g stroke="rgba(207,224,255,0.28)" strokeWidth="1">
         {links.map(([a, b], i) => (
           <line
@@ -68,6 +79,14 @@ export function CelestialChart({ className }: { className?: string }) {
             y1={points[a].y}
             x2={points[b].x}
             y2={points[b].y}
+            pathLength={1}
+            strokeDasharray={1}
+            strokeDashoffset={drawn ? 0 : 1}
+            style={{
+              transition:
+                "stroke-dashoffset 1.1s cubic-bezier(0.2, 0.7, 0.2, 1)",
+              transitionDelay: `${280 + i * 70}ms`,
+            }}
           />
         ))}
       </g>
